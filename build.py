@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 import os, sys, platform, shutil
-import re, threading, time, json
+import re, threading, time, json, subprocess
 from os import path
 from hashlib import sha1
 from multiprocessing import cpu_count
@@ -193,7 +193,7 @@ def compile(cmd, filename):
 
     outfile = path.join(object_dir, obj_name(filename))
 
-    res = os.system(cmd.format(infile=filename, outfile=outfile))
+    res = subprocess.call(cmd.format(infile=filename, outfile=outfile), shell=True)
     if res != 0:
         error("failed to compile '%s'" % filename)
 
@@ -208,7 +208,7 @@ def link():
         " ".join(config["lflags"])
     ]
     cmd = " ".join(lst)
-    res = os.system(cmd)
+    res = subprocess.call(cmd, shell=True)
     if res != 0:
         error("failed to link")
 
@@ -216,10 +216,11 @@ def link():
 def parallel(func, workers=4):
     """ runs func on multiple threads and waits for them all to finish """
     threads = []
-    for i in range(workers):
+    for i in range(workers - 1):
         t = threading.Thread(target=func)
         threads.append(t)
         t.start()
+    func()
     for t in threads:
         t.join()
 
@@ -303,4 +304,4 @@ if __name__ == "__main__":
     if run_at_exit:
         log("running")
         cmd = config["run"].format(output=config["output"])
-        os.system(cmd)
+        subprocess.call(cmd, shell=True)
