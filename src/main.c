@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
   get_exe_dir(exedir, sizeof(exedir));
   lua_pushstring(L, exedir);
   lua_setglobal(L, "EXEDIR");
+  SDL_StartTextInput();
 
 
   (void) luaL_dostring(L,
@@ -126,6 +127,7 @@ int main(int argc, char **argv) {
 
 
   lua_close(L);
+  SDL_StopTextInput();
   SDL_DestroyWindow(window);
 
   return EXIT_SUCCESS;

@@ -275,6 +275,8 @@ function core.on_event(type, ...)
   local did_keymap = false
   if type == "textinput" then
     core.root_view:on_text_input(...)
+  elseif type == "textediting" then
+    core.root_view:on_text_editing(...)
   elseif type == "keypressed" then
     did_keymap = keymap.on_key_pressed(...)
   elseif type == "keyreleased" then
@@ -313,7 +315,7 @@ function core.step()
       mouse_moved = true
       mouse.x, mouse.y = a, b
       mouse.dx, mouse.dy = mouse.dx + c, mouse.dy + d
-    elseif type == "textinput" and did_keymap then
+    elseif type == "textinput" and a == nil and did_keymap then
       did_keymap = false
     else
       did_keymap = core.on_event(type, a, b, c, d) or did_keymap

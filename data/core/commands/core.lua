@@ -68,7 +68,7 @@ command.add(nil, {
       local files = {}
       for _, item in pairs(core.project_files) do
         if item.type == "file" then
-          table.insert(files, item.filename:sub(#core.project_dir + 2))
+          table.insert(files, utf8.sub(item.filename, #core.project_dir + 2))
         end
       end
       return common.fuzzy_match(files, text)

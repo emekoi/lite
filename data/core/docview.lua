@@ -194,25 +194,25 @@ end
 function DocView:get_col_x_offset(line, col)
   local text = self.doc.lines[line]
   if not text then return 0 end
-  return self:get_font():get_width(text:sub(1, col - 1))
+  return self:get_font():get_width(utf8.sub(text, 1, col - 1))
 end
 
 
 function DocView:get_x_offset_col(line, x)
   local text = self.doc.lines[line]
 
-  local xoffset, last_i, i = 0, 1, 1
-  for char in common.utf8_chars(text) do
+  local xoffset, last_i = 0, 1
+  for i = 1, utf8.len(text) do
+    local char = utf8.sub(text, i, i)
     local w = self:get_font():get_width(char)
     if xoffset >= x then
       return (xoffset - x > w / 2) and last_i or i
     end
     xoffset = xoffset + w
     last_i = i
-    i = i + #char
   end
 
-  return #text
+  return utf8.len(text)
 end
 
 
@@ -297,6 +297,16 @@ function DocView:on_text_input(text)
 end
 
 
+function DocView:on_text_editing(text, start, length)
+  if utf8.len(text) == 0 then
+    self.composition = nil
+  else
+    self.composition = {text = text, start = start}
+    self.doc:text_edit(text, start)
+  end
+end
+
+
 function DocView:update()
   -- scroll to make caret visible and reset blink timer if it moved
   local line, col = self.doc:get_selection()
@@ -349,6 +359,20 @@ function DocView:draw_line_text(idx, x, y)
 end
 
 
+function DocView:draw_ime_text(x, y)
+  local c = self.composition
+  local font = self:get_font()
+  local line1, col1, line2, col2 = self.doc:get_selection(true)
+  local tx, ty = x, y + self:get_line_text_y_offset()
+  local lh = self:get_line_height()
+
+  system.set_textinput_pos(x, y + lh, font:get_width(c.text), lh)
+
+  renderer.draw_rect(tx, ty, font:get_width(c.text), font:get_height(), style.selection)
+  renderer.draw_text(font, c.text, tx, ty, style.text)
+end
+
+
 function DocView:draw_line_body(idx, x, y)
   local line, col = self.doc:get_selection()
 
@@ -357,7 +381,7 @@ function DocView:draw_line_body(idx, x, y)
   if idx >= line1 and idx <= line2 then
     local cl = self:get_cached_line(idx)
     if line1 ~= idx then col1 = 1 end
-    if line2 ~= idx then col2 = #cl.text + 1 end
+    if line2 ~= idx then col2 = utf8.len(cl.text) + 1 end
     local x1 = x + self:get_col_x_offset(idx, col1)
     local x2 = x + self:get_col_x_offset(idx, col2)
     local lh = self:get_line_height()
@@ -372,6 +396,13 @@ function DocView:draw_line_body(idx, x, y)
 
   -- draw line's text
   self:draw_line_text(idx, x, y)
+  
+  -- draw text for IME
+  local c = self.composition
+  if c ~= nil
+  and line == idx and core.active_view == self then
+    self:draw_ime_text(x + self:get_col_x_offset(idx, col1), y)
+  end
 
   -- draw caret if it overlaps this line
   if line == idx and core.active_view == self
@@ -379,7 +410,12 @@ function DocView:draw_line_body(idx, x, y)
   and system.window_has_focus() then
     local lh = self:get_line_height()
     local x1 = x + self:get_col_x_offset(line, col)
-    renderer.draw_rect(x1, y, style.caret_width, lh, style.caret)
+    if c == nil then
+      renderer.draw_rect(x1, y, style.caret_width, lh, style.caret)
+    else
+      x1 = x1 + self:get_font():get_width(utf8.sub(c.text, 1, c.start))
+      renderer.draw_rect(x1, y, style.caret_width, lh, style.caret)
+    end
   end
 end
 

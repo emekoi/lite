@@ -49,6 +49,7 @@ function Doc:reset()
   self.undo_stack = { idx = 1 }
   self.redo_stack = { idx = 1 }
   self.clean_change_id = 1
+  self.editing_text = false
 end
 
 
@@ -59,7 +60,7 @@ function Doc:load(filename)
   self.lines = {}
   for line in fp:lines() do
     if line:byte(-1) == 13 then
-      line = line:sub(1, -2)
+      line = utf8.sub(line, 1, -2)
       self.crlf = true
     end
     table.insert(self.lines, line .. "\n")
@@ -145,7 +146,7 @@ end
 
 function Doc:sanitize_position(line, col)
   line = common.clamp(line, 1, #self.lines)
-  col = common.clamp(col, 1, #self.lines[line])
+  col = common.clamp(col, 1, utf8.len(self.lines[line]))
   return line, col
 end
 
@@ -161,10 +162,10 @@ local function position_offset_byte(self, line, col, offset)
   col = col + offset
   while line > 1 and col < 1 do
     line = line - 1
-    col = col + #self.lines[line]
+    col = col + utf8.len(self.lines[line])
   end
-  while line < #self.lines and col > #self.lines[line] do
-    col = col - #self.lines[line]
+  while line < #self.lines and col > utf8.len(self.lines[line]) do
+    col = col - utf8.len(self.lines[line])
     line = line + 1
   end
   return self:sanitize_position(line, col)
@@ -194,20 +195,20 @@ function Doc:get_text(line1, col1, line2, col2)
   line2, col2 = self:sanitize_position(line2, col2)
   line1, col1, line2, col2 = sort_positions(line1, col1, line2, col2)
   if line1 == line2 then
-    return self.lines[line1]:sub(col1, col2 - 1)
+    return utf8.sub(self.lines[line1], col1, col2 - 1)
   end
-  local lines = { self.lines[line1]:sub(col1) }
+  local lines = { utf8.sub(self.lines[line1], col1) }
   for i = line1 + 1, line2 - 1 do
     table.insert(lines, self.lines[i])
   end
-  table.insert(lines, self.lines[line2]:sub(1, col2 - 1))
+  table.insert(lines, utf8.sub(self.lines[line2], 1, col2 - 1))
   return table.concat(lines)
 end
 
 
 function Doc:get_char(line, col)
   line, col = self:sanitize_position(line, col)
-  return self.lines[line]:sub(col, col)
+  return utf8.sub(self.lines[line], col, col)
 end
 
 
@@ -218,8 +219,8 @@ local function insert(self, undo_stack, time, line, col, text)
 
   -- split text into lines and merge with line at insertion point
   local lines = split_lines(text)
-  local before = self.lines[line]:sub(1, col - 1)
-  local after = self.lines[line]:sub(col)
+  local before = utf8.sub(self.lines[line], 1, col - 1)
+  local after = utf8.sub(self.lines[line], col)
   for i = 1, #lines - 1 do
     lines[i] = lines[i] .. "\n"
   end
@@ -247,8 +248,8 @@ local function remove(self, undo_stack, time, line1, col1, line2, col2)
   push_undo(self, undo_stack, time, "insert", line1, col1, text)
 
   -- get line content before/after removed text
-  local before = self.lines[line1]:sub(1, col1 - 1)
-  local after = self.lines[line2]:sub(col2)
+  local before = utf8.sub(self.lines[line1], 1, col1 - 1)
+  local after = utf8.sub(self.lines[line2], col2)
 
   -- splice line into line array
   splice(self.lines, line1, line2 - line1 + 1, { before .. after })
@@ -314,12 +315,18 @@ end
 
 
 function Doc:text_input(text)
+  self.editing_text = false
   if self:has_selection() then
     self:delete_to()
   end
   local line, col = self:get_selection()
   self:insert(line, col, text)
-  self:move_to(#text)
+  self:move_to(utf8.len(text))
+end
+
+
+function Doc:text_edit(text, start, length)
+  self.editing_text = self.editing_text or true
 end
 
 
@@ -329,7 +336,7 @@ function Doc:replace(fn)
   if had_selection then
     line1, col1, line2, col2, swap = self:get_selection(true)
   else
-    line1, col1, line2, col2 = 1, 1, #self.lines, #self.lines[#self.lines]
+    line1, col1, line2, col2 = 1, 1, #self.lines, ut8.len(self.lines[#self.lines])
   end
   local old_text = self:get_text(line1, col1, line2, col2)
   local new_text, n = fn(old_text)
@@ -337,7 +344,7 @@ function Doc:replace(fn)
     self:insert(line2, col2, new_text)
     self:remove(line1, col1, line2, col2)
     if had_selection then
-      line2, col2 = self:position_offset(line1, col1, #new_text)
+      line2, col2 = self:position_offset(line1, col1, utf8.len(new_text))
       self:set_selection(line1, col1, line2, col2, swap)
     end
   end

@@ -29,23 +29,7 @@ struct RenFont {
 static SDL_Window *window;
 static struct { int left, top, right, bottom; } clip;
 
-
-static const char* utf8_to_codepoint(const char *p, unsigned *dst) {
-  unsigned res, n;
-  switch (*p & 0xf0) {
-    case 0xf0 :  res = *p & 0x07;  n = 3;  break;
-    case 0xe0 :  res = *p & 0x0f;  n = 2;  break;
-    case 0xd0 :
-    case 0xc0 :  res = *p & 0x1f;  n = 1;  break;
-    default   :  res = *p;         n = 0;  break;
-  }
-  while (n--) {
-    res = (res << 6) | (*(++p) & 0x3f);
-  }
-  *dst = res;
-  return p + 1;
-}
-
+const char* utf8_decode(const char* text, unsigned* cp);
 
 void ren_init(SDL_Window *win) {
   assert(win);
@@ -212,7 +196,7 @@ int ren_get_font_width(RenFont *font, const char *text) {
   const char *p = text;
   unsigned codepoint;
   while (*p) {
-    p = utf8_to_codepoint(p, &codepoint);
+    p = utf8_decode(p, &codepoint);
     GlyphSet *set = get_glyphset(font, codepoint);
     stbtt_bakedchar *g = &set->glyphs[codepoint & 0xff];
     x += g->xadvance;
@@ -317,7 +301,7 @@ int ren_draw_text(RenFont *font, const char *text, int x, int y, RenColor color)
   const char *p = text;
   unsigned codepoint;
   while (*p) {
-    p = utf8_to_codepoint(p, &codepoint);
+    p = utf8_decode(p, &codepoint);
     GlyphSet *set = get_glyphset(font, codepoint);
     stbtt_bakedchar *g = &set->glyphs[codepoint & 0xff];
     rect.x = g->x0;

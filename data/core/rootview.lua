@@ -466,6 +466,11 @@ function RootView:on_text_input(...)
 end
 
 
+function RootView:on_text_editing(...)
+  core.active_view:on_text_editing(...)
+end
+
+
 function RootView:update()
   copy_position_and_size(self.root_node, self)
   self.root_node:update()

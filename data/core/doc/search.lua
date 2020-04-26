@@ -4,7 +4,7 @@ local default_opt = {}
 
 
 local function pattern_lower(str)
-  if str:sub(1, 1) == "%" then
+  if utf8.sub(str, 1, 1) == "%" then
     return str
   end
   return str:lower()

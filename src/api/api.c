@@ -3,11 +3,13 @@
 
 int luaopen_system(lua_State *L);
 int luaopen_renderer(lua_State *L);
+int luaopen_utf8(lua_State *L);
 
 
 static const luaL_Reg libs[] = {
   { "system",    luaopen_system     },
   { "renderer",  luaopen_renderer   },
+  { "utf8",      luaopen_utf8       },
   { NULL, NULL }
 };
 

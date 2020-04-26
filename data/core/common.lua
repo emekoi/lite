@@ -1,12 +1,6 @@
 local common = {}
 
 
-function common.is_utf8_cont(char)
-  local byte = char:byte()
-  return byte >= 0x80 and byte < 0xc0
-end
-
-
 function common.utf8_chars(text)
   return text:gmatch("[\0-\x7f\xc2-\xf4][\x80-\xbf]*")
 end

@@ -96,6 +96,11 @@ function View:on_text_input(text)
 end
 
 
+function View:on_text_editing(text, start, length)
+  -- no-op
+end
+
+
 function View:on_mouse_wheel(y)
   if self.scrollable then
     self.scroll.to.y = self.scroll.to.y + y * -config.mouse_wheel_scroll

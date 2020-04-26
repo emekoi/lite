@@ -30,17 +30,17 @@ local function insert_at_start_of_selected_lines(text)
   for line = line1, line2 do
     doc():insert(line, 1, text)
   end
-  doc():set_selection(line1, col1 + #text, line2, col2 + #text, swap)
+  doc():set_selection(line1, col1 + utf8.len(text), line2, col2 + utf8.len(text), swap)
 end
 
 
 local function remove_from_start_of_selected_lines(text)
   local line1, col1, line2, col2, swap = doc():get_selection(true)
   for line = line1, line2 do
-    if doc().lines[line]:sub(1, #text) == text then
-      doc():remove(line, 1, line, #text + 1)
-      if line == line1 then col1 = col1 - #text end
-      if line == line2 then col2 = col2 - #text end
+    if utf8.sub(doc().lines[line], 1, utf8.len(text)) == text then
+      doc():remove(line, 1, line, utf8.len(text) + 1)
+      if line == line1 then col1 = col1 - utf8.len(text) end
+      if line == line2 then col2 = col2 - utf8.len(text) end
     end
   end
   doc():set_selection(line1, col1, line2, col2, swap)
@@ -89,10 +89,11 @@ local commands = {
   end,
 
   ["doc:newline"] = function()
+    if doc().editing_text then return end
     local line, col = doc():get_selection()
     local indent = doc().lines[line]:match("^[\t ]*")
-    if col <= #indent then
-      indent = indent:sub(#indent + 2 - col)
+    if col <= utf8.len(indent) then
+      indent = utf8.sub(indent, utf8.len(indent) + 2 - col)
     end
     doc():text_input("\n" .. indent)
   end,
@@ -120,10 +121,11 @@ local commands = {
   end,
 
   ["doc:backspace"] = function()
+    if doc().editing_text then return end
     local line, col = doc():get_selection()
     if not doc():has_selection() then
       local text = doc():get_text(line, 1, line, col)
-      if #text >= config.indent_size and text:find("^ *$") then
+      if utf8.len(text) >= config.indent_size and text:find("^ *$") then
         doc():delete_to(0, -config.indent_size)
         return
       end
@@ -154,7 +156,7 @@ local commands = {
     local text = doc():get_text(line1, 1, line2, math.huge)
     text = text:gsub("\n[\t ]*", " ")
     doc():insert(line1, 1, text)
-    doc():remove(line1, #text + 1, line2, math.huge)
+    doc():remove(line1, utf8.len(text) + 1, line2, math.huge)
     if doc():has_selection() then
       doc():set_selection(line1, math.huge)
     end
@@ -219,7 +221,7 @@ local commands = {
     local uncomment = true
     for line = line1, line2 do
       local str = doc().lines[line]:match("^[ \t]*(.*)$")
-      if str and str:sub(1, #text) ~= text then
+      if str and utf8.sub(str, 1, utf8.len(text)) ~= text then
         uncomment = false
         break
       end
@@ -248,7 +250,7 @@ local commands = {
       items = {}
       local mt = { __tostring = function(x) return x.text end }
       for i, line in ipairs(dv.doc.lines) do
-        local item = { text = line:sub(1, -2), line = i, info = "line: " .. i }
+        local item = { text = utf8.sub(line, 1, -2), line = i, info = "line: " .. i }
         table.insert(items, setmetatable(item, mt))
       end
     end

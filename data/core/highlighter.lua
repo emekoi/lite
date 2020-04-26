@@ -42,18 +42,18 @@ function highlighter.tokenize(syntax, text, state)
   local res = {}
   local i = 1
 
-  while i <= #text do
+  while i <= utf8.len(text) do
     -- continue trying to match the end pattern of a pair if we have a state set
     if state then
       local p = syntax.patterns[state]
       local s, e = find_non_escaped(text, p.pattern[2], i, p.pattern[3])
 
       if s then
-        push_token(res, p.type, text:sub(i, e))
+        push_token(res, p.type, utf8.sub(text, i, e))
         state = nil
         i = e + 1
       else
-        push_token(res, p.type, text:sub(i))
+        push_token(res, p.type, utf8.sub(text, i))
         break
       end
     end
@@ -66,7 +66,7 @@ function highlighter.tokenize(syntax, text, state)
 
       if s then
         -- matched pattern; make and add token
-        local t = text:sub(s, e)
+        local t = utf8.sub(text, s, e)
         push_token(res, syntax.symbols[t] or p.type, t)
 
         -- update state if this was a start|end pattern pair
@@ -83,7 +83,7 @@ function highlighter.tokenize(syntax, text, state)
 
     -- consume character if we didn't match
     if not matched then
-      push_token(res, "normal", text:sub(i, i))
+      push_token(res, "normal", utf8.sub(text, i, i))
       i = i + 1
     end
   end
