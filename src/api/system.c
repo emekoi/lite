@@ -343,7 +343,6 @@ static int f_fuzzy_match(lua_State *L) {
   return 1;
 }
 
-static int edit_mode = 0;
 
 static int f_set_textinput_pos(lua_State *L) {
   double x = luaL_checknumber(L, 1);

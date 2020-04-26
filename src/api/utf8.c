@@ -1,6 +1,11 @@
 #include <stdlib.h>
+#include <string.h>
 #include "api.h"
 #include "xalloc.h"
+
+#ifdef _WIN32
+#include <io.h>
+#endif
 
 const char* utf8_decode(const char* text, unsigned* cp) {
 	unsigned char c = *text++;
@@ -140,7 +145,10 @@ static int f_utf8_reverse(lua_State *L) {
   luaL_Buffer b;
 
   const char *str = luaL_checklstring(L, 1, &len);
-  if (len == 0) return "";
+  if (len == 0) {
+    lua_pushlstring(L, "", 0);
+    goto end;
+  }
   
   char *out = luaL_buffinitsize(L, &b, len);
   (out += len)[-1] = '\0';
@@ -153,6 +161,7 @@ static int f_utf8_reverse(lua_State *L) {
   }
 
   luaL_pushresultsize(&b, len);
+end:
   return 1;
 }
 
